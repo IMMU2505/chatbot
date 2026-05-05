@@ -1,7 +1,5 @@
 import { Groq } from 'groq-sdk'
-import { COLLEGE_INFO } from '../../college-data'
 
-export const runtime = 'edge'
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! })
 
 export async function POST(req: Request) {
@@ -13,19 +11,23 @@ export async function POST(req: Request) {
     messages: [
       {
         role: 'system',
-        content: `You are ASCET Assistant for Annamacharya Institute. Answer ONLY using this official data. If asked something not here, say "For that info please contact ASCET office at 08565-248990". Be helpful and short. Data: ${COLLEGE_INFO}`
+        content: `You are ASCET Assistant for Annamacharya Institute. You only answer questions about Audisankara College of Engineering & Technology (ASCET) - admissions, fees, courses, placements. If asked anything else, say "For that info please contact ASCET office at 08565-248990". Be helpful and short.`
       },
-    ...messages
+     ...messages
     ]
   })
 
   const stream = new ReadableStream({
     async start(controller) {
       for await (const chunk of response) {
-        controller.enqueue(new TextEncoder().encode(chunk.choices[0]?.delta?.content || ''))
+        const text = chunk.choices[0]?.delta?.content || ''
+        controller.enqueue(new TextEncoder().encode(text))
       }
       controller.close()
     }
   })
-  return new Response(stream)
+
+  return new Response(stream, {
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+  })
 }
